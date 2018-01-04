@@ -1,0 +1,18 @@
+{
+  "appName": "Xena: Debug",
+  "port": 3000,
+  "dbConfig": {
+    "url": "mongodb://localhost:27017/Xena"
+  },
+  "root":{
+    "userName": "StarkX",
+    "password": "hello1world!",
+    "email": "arpit2011@live.com"
+  },
+  "crypto":{
+    "TokenKey": "key.pem",
+    "TokenSaltLength": 16,
+    "MinPasswordIterations": 4,
+    "MaxPasswordIterations": 20
+  }
+}
