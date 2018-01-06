@@ -3,5 +3,7 @@
  */
 
 module.exports = {
-    user : require('./userController')
+    user : require('./userController'),
+    conversation: require('./conversationController'),
+    message: require('./messageController')
 };

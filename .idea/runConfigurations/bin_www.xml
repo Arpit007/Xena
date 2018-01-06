@@ -3,6 +3,7 @@
     <envs>
       <env name="DEBUG" value="Xena:*" />
       <env name="NODE_ENV" value="development" />
+      <env name="BLUEBIRD_WARNINGS" value="0" />
     </envs>
     <browser url="http://localhost:3000/" />
     <EXTENSION ID="com.jetbrains.nodejs.remote.docker.NodeJSDockerRunConfigurationExtension">

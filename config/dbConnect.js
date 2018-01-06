@@ -6,7 +6,7 @@ const promise = require('bluebird');
 
 mongoose.Promise = promise;
 
-model.exports = (dbUrl) => {
+module.exports = (dbUrl) => {
     "use strict";
     mongoose.connect(dbUrl, function (err) {
         if (err)return console.log(err);

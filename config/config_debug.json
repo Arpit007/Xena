@@ -15,10 +15,11 @@
     "MinPasswordIterations": 4,
     "MaxPasswordIterations": 20,
     "SessionKey": "SessionKey.txt",
-    "ResetTokenExpiry": 6 //In Hours
+    "ResetTokenExpiry": 6,
+    "JwtExpiration": 12
   },
   "mail": {
-    "email": "myMail@xyz.com",
-    "password": "myPassword"
+    "email": "arpitbhatnagar10@gmail.com",
+    "password": "amazingworld!"
   }
 }

@@ -12,6 +12,7 @@ module.exports = {
     UserDoesNotExists : 402,
     Forbidden : 403,
     NotFound : 404,
+    UserAlreadyExists : 405,
     Timeout : 408,
     InternalError : 500,
     NotImplemented : 501,

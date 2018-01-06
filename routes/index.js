@@ -1,9 +1,16 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 
-/* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
+router.get('/', function (req, res, next) {
+    res.render('index', { title : xConfig.appName });
+});
+
+router.get('/user/reset', function (req, res, next) {
+    res.end('Hi');
+});
+
+router.get('/unauthorised', function (req, res, next) {
+    res.end('UnAuthorised');
 });
 
 module.exports = router;

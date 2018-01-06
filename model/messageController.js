@@ -12,3 +12,5 @@ message.createMessage = (conversationID, mType, content, author) => {
         author : author
     });
 };
+
+module.exports = message;

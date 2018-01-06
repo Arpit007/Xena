@@ -4,29 +4,39 @@
 const user = require('./user');
 const bCrypt = require('bcrypt');
 const rand = require('random-key');
-const dateDiff = require('date-diff');
+const jwt = require('jsonwebtoken');
 
 const statusCode = require('./statusCode');
 
 user.createUser = (userName, email, password) => {
-    const Count = Math.floor(Math.random() * (xConfig.crypto.MaxPasswordIterations - xConfig.crypto.MinPasswordIterations))
-        + xConfig.crypto.MinPasswordIterations;
-    
-    return bCrypt.genSalt(Count)
-        .then((salt) => {
+    return user.getUser(userName)
+        .then((User) => {
             "use strict";
-            bCrypt.hash(password, salt)
-                .then((hash) => {
-                    return user
-                        .create({
-                            userName : userName,
-                            email : email,
-                            password : hash
-                        })
-                        .catch((e) => {
+            if (User)throw statusCode.UserAlreadyExists;
+            return user.getUser(email)
+                .then((User) => {
+                    if (User)throw statusCode.UserAlreadyExists;
+                    
+                    const Count = Math.floor(Math.random() * (xConfig.crypto.MaxPasswordIterations - xConfig.crypto.MinPasswordIterations))
+                        + xConfig.crypto.MinPasswordIterations;
+                    
+                    return bCrypt.genSalt(Count)
+                        .then((salt) => {
                             "use strict";
-                            console.log(e);
-                            return null;
+                            return bCrypt.hash(password, salt)
+                                .then((hash) => {
+                                    return user
+                                        .create({
+                                            userName : userName,
+                                            email : email,
+                                            password : hash
+                                        })
+                                        .catch((e) => {
+                                            "use strict";
+                                            console.log(e);
+                                            throw statusCode.InternalError;
+                                        });
+                                });
                         });
                 });
         });
@@ -48,11 +58,9 @@ user.authorise = (identifier, password) => {
         .then((user) => {
             if (!user)
                 throw statusCode.UserDoesNotExists;
-            return bCrypt.compare(password, user.password);
-        })
-        .catch((e) => {
-            console.log(e);
-            throw statusCode.InternalError;
+            if (!bCrypt.compare(password, user.password))
+                throw statusCode.Unauthorized;
+            return user;
         });
 };
 
@@ -61,10 +69,12 @@ user.generateResetToken = (identifier) => {
     return user.getUser(identifier)
         .then((User) => {
             if (!User)throw statusCode.UserDoesNotExists;
-            User.reset.Token = rand.generate(xConfig.crypto.TokenSaltLength);
-            User.reset.Expiry = new Date();
+            User.resetToken = jwt.sign({
+                userID : User._id.toString(),
+                key : rand.generate(xConfig.crypto.TokenSaltLength)
+            }, xConfig.crypto.TokenKey, { expiresIn : xConfig.crypto.JwtExpiration * 60 * 60 });
             return User.save()
-                .then(() => User.reset.Token)
+                .then(() => User)
                 .catch((e) => {
                     console.log(e);
                     throw statusCode.InternalError;
@@ -74,12 +84,7 @@ user.generateResetToken = (identifier) => {
 
 user.resetTokenValidity = (User, Token) => {
     "use strict";
-    if (!User.reset.Expiry)
-        throw statusCode.BadRequest;
-    const diff = new dateDiff(new Date(), User.reset.Expiry);
-    if (diff.hours() > xConfig.crypto.ResetTokenExpiry)
-        throw statusCode.Timeout;
-    return (User.crypto.Token === Token);
+    return (User.reset.Token === Token);
 };
 
 user.changePassword = (User, newPassword) => {
@@ -100,7 +105,7 @@ user.changePassword = (User, newPassword) => {
                         .catch((e) => {
                             console.log(e);
                             throw statusCode.InternalError;
-                        })
+                        });
                 });
         });
 };

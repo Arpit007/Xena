@@ -21,7 +21,9 @@ config.crypto.SessionKey = fs.readFileSync(path.join(__dirname, config.crypto.Se
 config.crypto.MinPasswordIterations = Math.max(1, config.crypto.MinPasswordIterations);
 config.crypto.MaxPasswordIterations = Math.max(1, Math.min(99, config.crypto.MaxPasswordIterations));
 
-//require('./dbConnect')(config.dbConfig.url);
-
+require('./dbConnect')(config.dbConfig.url);
 global.xConfig = config;
+
+config.localIP = require('../src/ip')();
+
 module.exports = config;

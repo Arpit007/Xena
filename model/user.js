@@ -9,10 +9,7 @@ const userSchema = new Schema({
     email : { type : String, required : true, trim : true, index : true, unique : true, lowercase : true },
     password : { type : String, required : true },
     isAdmin : { type : Boolean, default : false },
-    reset : {
-        Token : String,
-        Expiry : Date
-    }
+    resetToken : String
 });
 
 module.exports = mongoose.model('User', userSchema);
