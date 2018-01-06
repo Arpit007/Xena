@@ -34,6 +34,24 @@ conversation.getConversations = (userID) => {
         });
 };
 
+conversation.getConversationList = (userID) => {
+    "use strict";
+    return conversation.find({ participants : userID })
+        .populate({
+            path : "participants",
+            select : "_id userName"
+        })
+        .then((conversations) => {
+            conversations.forEach(function (Conversation) {
+                delete Conversation.participants[ userID ];
+            });
+            return conversations;
+        }).catch((e) => {
+            console.log(e);
+            throw statusCode.InternalError;
+        });
+};
+
 conversation.getConversationByID = (ID) => {
     "use strict";
     if (!ID)return null;
@@ -51,7 +69,13 @@ conversation.getConversationByID = (ID) => {
 
 conversation.getConversationByUsers = (user1, user2) => {
     "use strict";
-    return conversation.find({ participants : [ user1, user2 ] }, { _id : 1 })
+    return conversation.find({ participants : [ user1, user2 ], global : false }, { _id : 1 })
+        .then((ID) => conversation.getConversationByID(ID));
+};
+
+conversation.getGlobalConversation = () => {
+    "use strict";
+    return conversation.find({ global : true }, { _id : 1 })
         .then((ID) => conversation.getConversationByID(ID));
 };
 

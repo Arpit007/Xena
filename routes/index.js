@@ -13,4 +13,8 @@ router.get('/unauthorised', function (req, res, next) {
     res.end('UnAuthorised');
 });
 
+router.all('/web/login', function (req, res, next) {
+    res.end('Login');
+});
+
 module.exports = router;

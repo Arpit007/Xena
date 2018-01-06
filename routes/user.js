@@ -4,9 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const mongoose = require('mongoose');
-
-const ObjectID = mongoose.Types.ObjectId;
+const ObjectID = require('mongoose').Types.ObjectId;
 
 const resetPassMail = require('../src/passwordResetMail');
 const response = require('../model/response');
@@ -21,7 +19,7 @@ router.post('/signup', function (req, res) {
     
     return model.user.createUser(userName, email, password)
         .then((user) => {
-            const token = jwt.sign({ userID : user._id.toString() }, xConfig.crypto.TokenKey, { expiresIn : xConfig.crypto.JwtExpiration * 24 * 60 * 60 });
+            const token = jwt.sign({ userID : user._id.toString() }, xConfig.crypto.TokenKey, { expiresIn : xConfig.crypto.JwtExpiration * 60 * 60 });
             let reply = response();
             reply.head.code = statusCode.Ok;
             reply.body.token = token;
@@ -91,11 +89,12 @@ router.get('/reset', function (req, res) {
                 if (!user)throw statusCode.UserDoesNotExists;
                 let validity = model.user.resetTokenValidity(user, token);
                 if (!validity) res.redirect('/unauthorised');
+                req.flash('token', token);
                 res.redirect('/user/reset');
             });
     }
     catch (e) {
-        reply.body.code = statusCode.Unauthorized;
+        reply.head.code = statusCode.Unauthorized;
         res.json(reply);
     }
 });
@@ -123,7 +122,7 @@ router.post('/change', function (req, res) {
             });
     }
     catch (e) {
-        reply.body.code = statusCode.Unauthorized;
+        reply.head.code = statusCode.Unauthorized;
         res.json(reply);
     }
 });

@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const compression = require('compression');
 const helmet = require('helmet');
 const session = require('express-session');
+const flash = require('express-flash');
 
 const index = require('./routes/index');
 const api = require('./routes/api');
@@ -22,6 +23,7 @@ app.use(session({
     saveUninitialized: true,
     cookie: { secure: true }
 }));
+app.use(flash());
 
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(helmet());
