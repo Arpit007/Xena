@@ -6,9 +6,13 @@ const Schema = mongoose.Schema;
 
 const userSchema = new Schema({
     userName : { type : String, required : true, trim : true, unique : true, index : true },
-    email : { type : String, required : true, trim : true, index : true },
+    email : { type : String, required : true, trim : true, index : true, unique : true, lowercase : true },
     password : { type : String, required : true },
-    isAdmin : { type : Boolean, default : false }
+    isAdmin : { type : Boolean, default : false },
+    reset : {
+        Token : String,
+        Expiry : Date
+    }
 });
 
 module.exports = mongoose.model('User', userSchema);

@@ -4,15 +4,21 @@
   "dbConfig": {
     "url": "mongodb://localhost:27017/Xena"
   },
-  "root":{
+  "root": {
     "userName": "StarkX",
     "password": "hello1world!",
     "email": "arpit2011@live.com"
   },
-  "crypto":{
-    "TokenKey": "key.pem",
+  "crypto": {
+    "TokenKey": "TokenKey.pem",
     "TokenSaltLength": 16,
     "MinPasswordIterations": 4,
-    "MaxPasswordIterations": 20
+    "MaxPasswordIterations": 20,
+    "SessionKey": "SessionKey.txt",
+    "ResetTokenExpiry": 6 //In Hours
+  },
+  "mail": {
+    "email": "myMail@xyz.com",
+    "password": "myPassword"
   }
 }
