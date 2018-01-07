@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+Hello World
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    let socket = null;
+    let token = null;
+    function connect() {
+        socket = io();
+        token = document.getElementById('token').value;
+        socket.on('connect', function () {
+            alert('Connected');
+            socket.emit('verify', token);
+            socket.on('UnAuthorised', function () {
+                alert('UnAuthorised!');
+            });
+            socket.on('live', function (userList) {
+                alert('Live List: ' + JSON.stringify(userList));
+            });
+            socket.on('onError', function (err) {
+                alert('Error: ' + err);
+            });
+            socket.on('connectionSuccess', function () {
+                socket.emit('liveList');
+            });
+        });
+        return false;
+    }
+
+</script>
+
+
+Token: <input title="Token" type="text" name="token" id="token">
+<button onclick="connect()">Connect</button>
+
+
+</body>
+</html>

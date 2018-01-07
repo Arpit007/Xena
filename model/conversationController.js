@@ -9,12 +9,12 @@ const statusCode = require('./statusCode');
 
 conversation.getConversations = (userID) => {
     "use strict";
-    return conversation.find({ participants : userID }, { _id : 1 })
+    return conversation.find({ participants : userID, global : false }, { _id : 1 })
         .then((conversations) => {
             let conversationList = [];
             let Queries = [];
             conversations.forEach(function (conversation) {
-                Queries.push(message.find({ conversationID : conversation._id })
+                return Queries.push(message.find({ conversationID : conversation._id })
                     .sort('-createdAt')
                     .limit(1)
                     .populate({
@@ -36,7 +36,7 @@ conversation.getConversations = (userID) => {
 
 conversation.getConversationList = (userID) => {
     "use strict";
-    return conversation.find({ participants : userID })
+    return conversation.find({ participants : userID, global : false })
         .populate({
             path : "participants",
             select : "_id userName"
@@ -52,10 +52,10 @@ conversation.getConversationList = (userID) => {
         });
 };
 
-conversation.getConversationByID = (ID) => {
+conversation.getExpConversationByID = (ID) => {
     "use strict";
     if (!ID)return null;
-    return message.find({ conversationID : ID })
+    return message.findOne({ conversationID : ID })
         .select('mType content author')
         .sort('-createdAt')
         .populate({
@@ -67,16 +67,27 @@ conversation.getConversationByID = (ID) => {
         });
 };
 
+conversation.getConversationIDByUsers = (user1, user2) => {
+    "use strict";
+    return conversation.findOne({ participants : [ user1, user2 ], global : false });
+};
+
 conversation.getConversationByUsers = (user1, user2) => {
     "use strict";
-    return conversation.find({ participants : [ user1, user2 ], global : false }, { _id : 1 })
-        .then((ID) => conversation.getConversationByID(ID));
+    return conversation.getConversationIDByUsers(user1, user2)
+        .then((ID) => conversation.getExpConversationByID(ID._id));
+};
+
+
+conversation.getGlobalConversationID = () => {
+    "use strict";
+    return conversation.findOne({ global : true });
 };
 
 conversation.getGlobalConversation = () => {
     "use strict";
-    return conversation.find({ global : true }, { _id : 1 })
-        .then((ID) => conversation.getConversationByID(ID));
+    return conversation.getExpConversationByID()
+        .then((ID) => conversation.getExpConversationByID(ID._id));
 };
 
 conversation.createConversation = (user1, user2) => {

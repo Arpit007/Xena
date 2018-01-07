@@ -16,10 +16,18 @@
     "MaxPasswordIterations": 20,
     "SessionKey": "SessionKey.txt",
     "ResetTokenExpiry": 6,
-    "JwtExpiration": 12
+    "ResetTokenLength": 32,
+    "JwtExpiration": 12,
+    "MinPasswordLength": 8,
+    "MaxPasswordLength": 32
   },
   "mail": {
     "email": "arpitbhatnagar10@gmail.com",
     "password": "amazingworld!"
+  },
+  "uploads": {
+    "dir": "uploads/",
+    "dbName": "collection.json",
+    "simultaneousFileLimit": 10
   }
 }

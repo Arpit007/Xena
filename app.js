@@ -1,13 +1,14 @@
-const express = require('express');
 const path = require('path');
-const favicon = require('serve-favicon');
+const cors = require('cors');
 const logger = require('morgan');
-const cookieParser = require('cookie-parser');
-const bodyParser = require('body-parser');
-const compression = require('compression');
 const helmet = require('helmet');
-const session = require('express-session');
+const express = require('express');
 const flash = require('express-flash');
+const favicon = require('serve-favicon');
+const bodyParser = require('body-parser');
+const session = require('express-session');
+const compression = require('compression');
+const cookieParser = require('cookie-parser');
 
 const index = require('./routes/index');
 const api = require('./routes/api');
@@ -18,14 +19,15 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 app.use(session({
-    secret: 'keyboard cat',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: true }
+    secret : xConfig.crypto.SessionKey,
+    resave : false,
+    saveUninitialized : true,
+    cookie : { secure : true }
 }));
 app.use(flash());
 
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+app.use(cors());
 app.use(helmet());
 app.use(compression());
 app.use(logger('dev'));

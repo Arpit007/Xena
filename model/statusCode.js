@@ -20,4 +20,6 @@ module.exports = {
     ServiceUnavailable : 503,
     GatewayTimeout : 504,
     LoginTimeout : 440,
+    PasswordShort : 700,
+    PasswordLong : 701
 };

@@ -9,32 +9,41 @@ const jwt = require('jsonwebtoken');
 const statusCode = require('./statusCode');
 
 user.createUser = (userName, email, password) => {
-    return user.getUser(userName)
-        .then((User) => {
+    return new Promise((resolve, reject) => resolve())
+        .then(() => {
             "use strict";
-            if (User)throw statusCode.UserAlreadyExists;
-            return user.getUser(email)
+            if (password.length < xConfig.crypto.MinPasswordLength)
+                throw statusCode.PasswordShort;
+            if (password.length > xConfig.crypto.MaxPasswordLength)
+                throw statusCode.PasswordLong;
+        }).then(() => {
+            return user.getUser(userName)
                 .then((User) => {
+                    "use strict";
                     if (User)throw statusCode.UserAlreadyExists;
-                    
-                    const Count = Math.floor(Math.random() * (xConfig.crypto.MaxPasswordIterations - xConfig.crypto.MinPasswordIterations))
-                        + xConfig.crypto.MinPasswordIterations;
-                    
-                    return bCrypt.genSalt(Count)
-                        .then((salt) => {
-                            "use strict";
-                            return bCrypt.hash(password, salt)
-                                .then((hash) => {
-                                    return user
-                                        .create({
-                                            userName : userName,
-                                            email : email,
-                                            password : hash
-                                        })
-                                        .catch((e) => {
-                                            "use strict";
-                                            console.log(e);
-                                            throw statusCode.InternalError;
+                    return user.getUser(email)
+                        .then((User) => {
+                            if (User)throw statusCode.UserAlreadyExists;
+                            
+                            const Count = Math.floor(Math.random() * (xConfig.crypto.MaxPasswordIterations - xConfig.crypto.MinPasswordIterations))
+                                + xConfig.crypto.MinPasswordIterations;
+                            
+                            return bCrypt.genSalt(Count)
+                                .then((salt) => {
+                                    "use strict";
+                                    return bCrypt.hash(password, salt)
+                                        .then((hash) => {
+                                            return user
+                                                .create({
+                                                    userName : userName,
+                                                    email : email,
+                                                    password : hash
+                                                })
+                                                .catch((e) => {
+                                                    "use strict";
+                                                    console.log(e);
+                                                    throw statusCode.InternalError;
+                                                });
                                         });
                                 });
                         });
@@ -52,15 +61,39 @@ user.getUser = (identifier) => {
         });
 };
 
+user.getUserByID = (id) => {
+    return user
+        .findById(id)
+        .catch((e) => {
+            "use strict";
+            console.log(e);
+            return null;
+        });
+};
+
+let comparePassword = (realPassword, password) => {
+    "use strict";
+    return new Promise((resolve, reject) => {
+        bCrypt.compare(realPassword, password, function (err, valid) {
+            if (err)
+                reject(err);
+            else resolve(valid);
+        });
+    });
+};
+
 user.authorise = (identifier, password) => {
     "use strict";
     return user.getUser(identifier)
         .then((user) => {
             if (!user)
                 throw statusCode.UserDoesNotExists;
-            if (!bCrypt.compare(password, user.password))
-                throw statusCode.Unauthorized;
-            return user;
+            return comparePassword(password, user.password)
+                .then((validity) => {
+                    if (!validity)
+                        throw statusCode.Unauthorized;
+                    return user;
+                });
         });
 };
 
@@ -71,7 +104,7 @@ user.generateResetToken = (identifier) => {
             if (!User)throw statusCode.UserDoesNotExists;
             User.resetToken = jwt.sign({
                 userID : User._id.toString(),
-                key : rand.generate(xConfig.crypto.TokenSaltLength)
+                key : rand.generate(xConfig.crypto.ResetTokenLength)
             }, xConfig.crypto.TokenKey, { expiresIn : xConfig.crypto.JwtExpiration * 60 * 60 });
             return User.save()
                 .then(() => User)

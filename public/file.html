@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Simple Multer Upload Example</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<form action="/api/upload/xFile" enctype="multipart/form-data" method="post">
+    <input type="file" name="xFile">
+    <input type="hidden" name="token" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOiI1YTUwYmM3MWIzZGZjZDI2ZjgwNjZkYjYiLCJpYXQiOjE1MTUzMjk0OTEsImV4cCI6MTUxNTM3MjY5MX0.RwV7H3tFLKdXFTTceWYyBt6u3xRl5cv-ZPgHYYCXPDk">
+    <input type="hidden" name="payload" value='{"isGlobal":false, "otherUser":"5a5216619a957e3a14a8b4f2"}'>
+    <input type="submit" value="Upload">
+</form>
+</body>
+</html>
