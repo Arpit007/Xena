@@ -103,7 +103,7 @@ if (xConfig.debugMode) {
                             });
                     };
                     if (!conversation)
-                        return model.conversation.createConversation(ObjectID(userID), ObjectID(payload.otherUser))
+                        return model.conversation.createConversation(userID, payload.otherUser)
                             .then((conversation) => process(conversation));
                     else return process(conversation);
                 });

@@ -6,6 +6,7 @@ const Promise = require('bluebird');
 const conversation = require('./conversation');
 const message = require('./message');
 const statusCode = require('./statusCode');
+const ObjectID = require('mongoose').Types.ObjectId;
 
 conversation.getConversations = (userID) => {
     "use strict";
@@ -55,7 +56,7 @@ conversation.getConversationList = (userID) => {
 conversation.getExpConversationByID = (ID) => {
     "use strict";
     if (!ID)return null;
-    return message.findOne({ conversationID : ID })
+    return message.find({ conversationID : ID })
         .select('mType content author')
         .sort('-createdAt')
         .populate({
@@ -86,14 +87,19 @@ conversation.getGlobalConversationID = () => {
 
 conversation.getGlobalConversation = () => {
     "use strict";
-    return conversation.getExpConversationByID()
+    return conversation.getGlobalConversationID()
         .then((ID) => conversation.getExpConversationByID(ID._id));
 };
 
 conversation.createConversation = (user1, user2) => {
     "use strict";
+    let users = [];
+    if (user1)users.push(ObjectID(user1));
+    if (user2)users.push(ObjectID(user2));
+    let isGlobal = users.length !== 2;
     return conversation.create({
-        participants : [ user1, user2 ]
+        participants : users,
+        global : isGlobal
     });
 };
 

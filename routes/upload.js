@@ -25,67 +25,78 @@ router.post('/xFile', upload.interim('xFile'), auth.apiAuth, function (req, res)
     let payload = JSON.parse(req.body.payload);
     let userID = req.userID;
     let files = req.files;
-    return model.user.find({ _id : [ userID, payload.otherUser ] }, { _id : 1 })
-        .then((users) => {
-            if (!users || users.length !== 2)
-                throw statusCode.BadRequest;
-            let Query;
-            try {
-                if (payload.isGlobal)
-                    Query = model.conversation.getGlobalConversationID();
-                else Query = model.conversation.getConversationIDByUsers(userID, payload.otherUser);
-            }
-            catch (e) {
-                let reply = response();
-                reply.head.code = statusCode.InternalError;
-                return res.json(reply);
-            }
-            return Query.then((conversation) => {
-                "use strict";
-                let process = (conversation) => {
-                    let messages = [];
-                    let subQueries = [];
-                    
-                    files.forEach((file) => {
-                        return subQueries.push(model.message.createMessage(conversation._id, mType.FILE, "", userID)
-                            .then((message) => {
-                                let name = file.originalname;
-                                let base = path.dirname(file.path);
-                                return new Promise((resolve, reject) => {
-                                    fs.rename(file.path, `${base}/${message._id.toString()}`, function (err, res) {
-                                        if (err) reject(err);
-                                        else resolve(res);
-                                    });
-                                }).then(() => {
-                                    messages.push({ message : message, fileName : name });
-                                });
-                            }));
-                    });
-                    return Promise.all(subQueries)
-                        .then(() => {
-                            return upload.saveToDb('xFile', messages)
-                                .then(() => {
-                                    return socket.broadcastMessage(conversation, messages)
-                                        .then(() => {
-                                            let reply = response();
-                                            reply.head.code = statusCode.Ok;
-                                            reply.head.messages = messages;
-                                            res.json(reply);
-                                        });
-                                });
-                        });
-                };
-                if (!conversation)
-                    return model.conversation.createConversation(ObjectID(userID), ObjectID(payload.otherUser))
-                        .then((conversation) => process(conversation));
-                else return process(conversation);
-            });
-        }).catch((e) => {
-            "use strict";
+    
+    let task = () => {
+        "use strict";
+        let Query;
+        try {
+            if (payload.isGlobal)
+                Query = model.conversation.getGlobalConversationID();
+            else Query = model.conversation.getConversationIDByUsers(ObjectID(socket.userID), ObjectID(payload.otherUser));
+        }
+        catch (e) {
             let reply = response();
-            reply.head.code = e;
-            res.json(reply);
+            reply.head.code = statusCode.InternalError;
+            return socket.emit('onError', reply);
+        }
+        return Query.then((conversation) => {
+            "use strict";
+            let process = (conversation) => {
+                let messages = [];
+                let subQueries = [];
+                
+                files.forEach((file) => {
+                    return subQueries.push(model.message.createMessage(conversation._id, mType.FILE, "", userID)
+                        .then((message) => {
+                            let name = file.originalname;
+                            let base = path.dirname(file.path);
+                            return new Promise((resolve, reject) => {
+                                fs.rename(file.path, `${base}/${message._id.toString()}`, function (err, res) {
+                                    if (err) reject(err);
+                                    else resolve(res);
+                                });
+                            }).then(() => {
+                                messages.push({ message : message, fileName : name });
+                            });
+                        }));
+                });
+                return Promise.all(subQueries)
+                    .then(() => {
+                        return upload.saveToDb('xFile', messages)
+                            .then(() => {
+                                return socket.broadcastMessage(conversation, messages)
+                                    .then(() => {
+                                        let reply = response();
+                                        reply.head.code = statusCode.Ok;
+                                        reply.head.messages = messages;
+                                        res.json(reply);
+                                    });
+                            });
+                    });
+            };
+            if (!conversation)
+                return model.conversation.createConversation(socket.userID, payload.otherUser)
+                    .then((conversation) => process(conversation));
+            else return process(conversation);
         });
+    };
+    
+    let process;
+    if (!payload.isGlobal)
+        process = model.user.find({ _id : [ userID, payload.otherUser ] }, { _id : 1 })
+            .then((users) => {
+                if (!users || users.length !== 2)
+                    throw statusCode.BadRequest;
+                return task();
+            });
+    else process = task();
+    
+    return process.catch((e) => {
+        "use strict";
+        let reply = response();
+        reply.head.code = statusCode.InternalError;
+        socket.emit('onError', reply);
+    });
 });
 
 module.exports = router;

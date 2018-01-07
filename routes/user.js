@@ -25,7 +25,22 @@ router.post('/signup', function (req, res) {
             reply.body.token = token;
             reply.body.userName = user.userName;
             reply.body.email = user.email;
-            res.json(reply);
+            
+            return model.conversation.getGlobalConversationID()
+                .then((conversation) => {
+                    let work = (conversation) => {
+                        conversation.participants.push(user._id);
+                        return conversation.save()
+                            .then(() => {
+                                res.json(reply);
+                            });
+                    };
+                    if (!conversation)
+                        return model.conversation.createConversation(null, null)
+                            .then((conversation) => work(conversation));
+                    else return new Promise(resolve => resolve())
+                        .then(() => work(conversation));
+                });
         })
         .catch((e) => {
             let reply = response();

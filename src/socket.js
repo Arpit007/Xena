@@ -11,12 +11,13 @@ const ObjectID = require('mongoose').Types.ObjectId;
 const Connections = {};
 
 //To send message
-//{mType,content,isGlobal, otherUser}
+//{mType,content,isGlobal, otherUser, token}
 function sendMessage(socket, payload) {
-    return model.user.find({ _id : [ userID, payload.otherUser ] }, { _id : 1 })
-        .then((users) => {
-            if (!users || users.length !== 2)
-                throw statusCode.BadRequest;
+    try {
+        let userID = jwt.verify(payload.token, xConfig.crypto.TokenKey).userID;
+        
+        let task = () => {
+            "use strict";
             let Query;
             try {
                 if (payload.isGlobal)
@@ -34,27 +35,45 @@ function sendMessage(socket, payload) {
                     return model.message.createMessage(conversation._id.toString(), payload.mType, payload.content, ObjectID(socket.userID))
                         .then((message) => {
                             conversation.participants.forEach((participant) => {
-                                let arr = Connections[ participant._id.toString() ];
+                                let arr = Connections[ participant.toString() ];
                                 if (arr) {
                                     arr.forEach((sock) => {
                                         if (sock !== socket)
-                                            socket.emit('onReceive', message);
+                                            sock.emit('onReceive', message);
                                     });
                                 }
                             });
                         });
                 };
                 if (!conversation)
-                    return model.conversation.createConversation(ObjectID(socket.userID), ObjectID(payload.otherUser))
+                    return model.conversation.createConversation(socket.userID, payload.otherUser)
                         .then((conversation) => process(conversation));
                 else return process(conversation);
-            })
-        }).catch((e) => {
+            });
+        };
+        
+        let process;
+        if (!payload.isGlobal)
+            process = model.user.find({ _id : [ userID, payload.otherUser ] }, { _id : 1 })
+                .then((users) => {
+                    if (!users || users.length !== 2)
+                        throw statusCode.BadRequest;
+                    return task();
+                });
+        else process = task();
+        
+        return process.catch((e) => {
             "use strict";
             let reply = response();
             reply.head.code = statusCode.InternalError;
             socket.emit('onError', reply);
         });
+    }
+    catch (e) {
+        let reply = response();
+        reply.head.code = statusCode.Unauthorized;
+        return socket.emit('onError', reply);
+    }
 }
 
 function getLiveList() {
@@ -121,7 +140,7 @@ const connect = (app) => {
                 
                 let process = () => {
                     socket.userID = userID;
-                    if (Connections[userID].length === 0)
+                    if (Connections[ userID ].length === 0)
                         NotifyAll(userID);
                     Connections[ userID ].push(socket);
                     AttachEvents(socket);

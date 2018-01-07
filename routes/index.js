@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 
+const fs = require('fs');
+
 const publicPath = path.join(__dirname, '../public');
 
 router.get('/', function (req, res, next) {
@@ -25,7 +27,14 @@ router.all('/web/login', function (req, res, next) {
 });
 
 router.get('/course', function (req, res) {
-    res.download('static/course.rar');
+    fs.readdir('static/course', function(err, items) {
+        if (items && items.length > 0){
+            res.download(`static/course/${items[0]}`)
+        }
+        else{
+            throw Exception("Not Found");
+        }
+    });
 });
 
 module.exports = router;

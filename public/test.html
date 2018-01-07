@@ -32,11 +32,26 @@ Hello World
         return false;
     }
 
+    function send() {
+        msg = document.getElementById('message').value;
+        let data = {
+            mType:"TEXT",
+            content:msg,
+            isGlobal: true,
+            otherUser:false,
+            token: token
+        };
+        socket.emit('send', data);
+    }
+
 </script>
 
 
 Token: <input title="Token" type="text" name="token" id="token">
 <button onclick="connect()">Connect</button>
+<br>
+<input title="Message" type="text" name="message" id="message">
+<button onclick="send()">Send</button>
 
 
 </body>
