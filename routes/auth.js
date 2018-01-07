@@ -16,20 +16,7 @@ module.exports = {
             next();
         }
         catch (e) {
-            let reply = response();
-            reply.head.code = statusCode.Unauthorized;
-            res.json(reply);
-        }
-    },
-    webAuth : function (req, res, next) {
-        "use strict";
-        try {
-            let payload = jwt.verify(req.body.token, xConfig.crypto.TokenKey);
-            req.userID = ObjectID(payload.userID);
-            next();
-        }
-        catch (e) {
-            res.redirect('/web/login');
+            res.json(response(statusCode.Unauthorized));
         }
     }
 };

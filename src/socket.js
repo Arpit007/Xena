@@ -21,13 +21,11 @@ function sendMessage(socket, payload) {
             let Query;
             try {
                 if (payload.isGlobal)
-                    Query = model.conversation.getGlobalConversationID();
-                else Query = model.conversation.getConversationIDByUsers(ObjectID(socket.userID), ObjectID(payload.otherUser));
+                    Query = model.conversation.getGlobalConversation();
+                else Query = model.conversation.getConversationByUsers(socket.userID, payload.otherUser);
             }
             catch (e) {
-                let reply = response();
-                reply.head.code = statusCode.InternalError;
-                return socket.emit('onError', reply);
+                return socket.emit('onError', response(statusCode.InternalError));
             }
             return Query.then((conversation) => {
                 "use strict";
@@ -64,15 +62,11 @@ function sendMessage(socket, payload) {
         
         return process.catch((e) => {
             "use strict";
-            let reply = response();
-            reply.head.code = statusCode.InternalError;
-            socket.emit('onError', reply);
+            socket.emit('onError', response(statusCode.InternalError));
         });
     }
     catch (e) {
-        let reply = response();
-        reply.head.code = statusCode.Unauthorized;
-        return socket.emit('onError', reply);
+        return socket.emit('onError', response(statusCode.Unauthorized));
     }
 }
 

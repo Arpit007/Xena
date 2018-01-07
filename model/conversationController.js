@@ -8,13 +8,13 @@ const message = require('./message');
 const statusCode = require('./statusCode');
 const ObjectID = require('mongoose').Types.ObjectId;
 
-conversation.getConversations = (userID) => {
+conversation.getPastConversations = (userID) => {
     "use strict";
-    return conversation.find({ participants : userID, global : false }, { _id : 1 })
+    return conversation.find({ participants : userID, global : true }, { _id : 1 })
         .then((conversations) => {
             let conversationList = [];
             let Queries = [];
-            conversations.forEach(function (conversation) {
+            conversations.forEach((conversation) => {
                 return Queries.push(message.find({ conversationID : conversation._id })
                     .sort('-createdAt')
                     .limit(1)
@@ -22,8 +22,9 @@ conversation.getConversations = (userID) => {
                         path : "author",
                         select : "userName"
                     })
-                    .then((message) => {
-                        conversationList.push(message);
+                    .then((messages) => {
+                        conversation._doc.messages = messages;
+                        conversationList.push(conversation);
                     }));
             });
             return Promise.all(Queries)
@@ -35,28 +36,10 @@ conversation.getConversations = (userID) => {
         });
 };
 
-conversation.getConversationList = (userID) => {
+conversation.expandConversation = (conversationID) => {
     "use strict";
-    return conversation.find({ participants : userID, global : false })
-        .populate({
-            path : "participants",
-            select : "_id userName"
-        })
-        .then((conversations) => {
-            conversations.forEach(function (Conversation) {
-                delete Conversation.participants[ userID ];
-            });
-            return conversations;
-        }).catch((e) => {
-            console.log(e);
-            throw statusCode.InternalError;
-        });
-};
-
-conversation.getExpConversationByID = (ID) => {
-    "use strict";
-    if (!ID)return null;
-    return message.find({ conversationID : ID })
+    if (!conversationID)return null;
+    return message.find({ conversationID : conversationID })
         .select('mType content author')
         .sort('-createdAt')
         .populate({
@@ -68,34 +51,21 @@ conversation.getExpConversationByID = (ID) => {
         });
 };
 
-conversation.getConversationIDByUsers = (user1, user2) => {
-    "use strict";
-    return conversation.findOne({ participants : [ user1, user2 ], global : false });
-};
-
-conversation.getConversationByUsers = (user1, user2) => {
-    "use strict";
-    return conversation.getConversationIDByUsers(user1, user2)
-        .then((ID) => conversation.getExpConversationByID(ID._id));
-};
-
-
-conversation.getGlobalConversationID = () => {
+conversation.getGlobalConversation = () => {
     "use strict";
     return conversation.findOne({ global : true });
 };
 
-conversation.getGlobalConversation = () => {
+conversation.getConversationByUsers = (user1, user2) => {
     "use strict";
-    return conversation.getGlobalConversationID()
-        .then((ID) => conversation.getExpConversationByID(ID._id));
+    return conversation.findOne({ participants : [ user1, user2 ], global : false });
 };
 
 conversation.createConversation = (user1, user2) => {
     "use strict";
     let users = [];
-    if (user1)users.push(ObjectID(user1));
-    if (user2)users.push(ObjectID(user2));
+    if (user1) users.push(ObjectID(user1));
+    if (user2) users.push(ObjectID(user2));
     let isGlobal = users.length !== 2;
     return conversation.create({
         participants : users,

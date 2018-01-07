@@ -10,8 +10,8 @@ const session = require('express-session');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
 
-const index = require('./routes/index');
 const api = require('./routes/api');
+const index = require('./routes/index');
 
 const app = express();
 
@@ -45,9 +45,9 @@ app.use(function (req, res, next) {
     next(err);
 });
 
-app.use(function (err, req, res, next) {
+app.use(function (err, req, res) {
     res.locals.message = err.message;
-    res.locals.error = req.app.get('NODE_ENV') === 'development' ? err : {};
+    res.locals.baseResponse = req.app.get('NODE_ENV') === 'development' ? err : {};
     res.status(err.status || 500);
     res.render('error');
 });

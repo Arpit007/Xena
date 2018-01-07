@@ -27,13 +27,13 @@ $(document).ready(function() {
 					localStorage.email = data.body.email;
 					window.location.assign("profile.html")
 				} else {
-					$('#error-msg').text('Incorrect Username or Password!');
+					$('#baseResponse-msg').text('Incorrect Username or Password!');
 					$('.progress').hide();
 					$('#enabler').removeClass('disabled');
 				}
  			});
 		} else {
-			$('#error-msg').text('Cannot be left blank');
+			$('#baseResponse-msg').text('Cannot be left blank');
 		}
 	});
 

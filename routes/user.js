@@ -20,13 +20,12 @@ router.post('/signup', function (req, res) {
     return model.user.createUser(userName, email, password)
         .then((user) => {
             const token = jwt.sign({ userID : user._id.toString() }, xConfig.crypto.TokenKey, { expiresIn : xConfig.crypto.JwtExpiration * 60 * 60 });
-            let reply = response();
-            reply.head.code = statusCode.Ok;
+            let reply = response(statusCode.Ok);
             reply.body.token = token;
             reply.body.userName = user.userName;
             reply.body.email = user.email;
             
-            return model.conversation.getGlobalConversationID()
+            return model.conversation.getGlobalConversation()
                 .then((conversation) => {
                     let work = (conversation) => {
                         conversation.participants.push(user._id);
@@ -43,9 +42,7 @@ router.post('/signup', function (req, res) {
                 });
         })
         .catch((e) => {
-            let reply = response();
-            reply.head.code = e;
-            res.json(reply);
+            res.json(response(e));
         });
 });
 
@@ -57,17 +54,14 @@ router.post('/signin', function (req, res) {
     return model.user.authorise(id, password)
         .then((user) => {
             const token = jwt.sign({ userID : user._id.toString() }, xConfig.crypto.TokenKey, { expiresIn : xConfig.crypto.JwtExpiration * 60 * 60 });
-            let reply = response();
-            reply.head.code = statusCode.Ok;
+            let reply = response(statusCode.Ok);
             reply.body.token = token;
             reply.body.userName = user.userName;
             reply.body.email = user.email;
             res.json(reply);
         })
         .catch((e) => {
-            let reply = response();
-            reply.head.code = e;
-            res.json(reply);
+            res.json(response(e));
         });
 });
 
@@ -77,23 +71,20 @@ router.post('/forgot', function (req, res) {
         .then((user) => {
             "use strict";
             const link = 'http://' + xConfig.localIP + '/api/user/reset?token=' + user.resetToken;
-            resetPassMail(user.email, user.userName, link, (err) => {
-                if (err)throw statusCode.InternalError;
-                let reply = response();
-                reply.head.code = statusCode.Ok;
-                res.json(reply);
-            });
+            return resetPassMail(user.email, user.userName, link)
+                .then((err) => {
+                    if (err)throw statusCode.InternalError;
+                    res.json(response(statusCode.Ok));
+                });
         })
         .catch((e) => {
-            let reply = response();
-            reply.head.code = e;
-            res.json(reply);
+            res.json(response(e));
         });
 });
 
 router.get('/reset', function (req, res) {
     const token = req.query.token;
-    let reply = response();
+    let reply = response(0);
     try {
         let payload = jwt.verify(token, xConfig.crypto.TokenKey);
         const userID = ObjectID(payload.userID);
@@ -117,7 +108,7 @@ router.get('/reset', function (req, res) {
 router.post('/change', function (req, res) {
     "use strict";
     const token = req.query.token;
-    let reply = response();
+    let reply = response(0);
     try {
         let payload = jwt.verify(token, xConfig.crypto.TokenKey);
         const userID = ObjectID(payload.userID);
@@ -130,9 +121,7 @@ router.post('/change', function (req, res) {
                 if (!validity) res.redirect('/unauthorised');
                 return model.user.changePassword(User, password)
                     .then(() => {
-                        let reply = response();
-                        reply.head.code = statusCode.Ok;
-                        res.json(reply);
+                        res.json(response(statusCode.Ok));
                     });
             });
     }

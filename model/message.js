@@ -11,7 +11,7 @@ const messageSchema = new Schema({
     conversationID : { type : ObjectID, ref : 'Conversation', required : true },
     mType : {
         type : String,
-        enum : [ messageType.TEXT, messageType.FILE, messageType.IMAGE, messageType.VIDEO ],
+        enum : [ messageType.TEXT, messageType.FILE ],
         default : messageType.TEXT
     },
     content : String,

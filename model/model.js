@@ -4,6 +4,6 @@
 
 module.exports = {
     user : require('./userController'),
-    conversation: require('./conversationController'),
-    message: require('./messageController')
+    conversation : require('./conversationController'),
+    message : require('./messageController')
 };

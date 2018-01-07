@@ -6,7 +6,7 @@ const multer = require('multer');
 const loki = require('lokijs');
 
 const upload = multer({ dest : xConfig.uploads.dir });
-const db = new loki(`${xConfig.uploads.dir}/${xConfig.uploads.dbName}`, { persistenceMethod : 'fs' });//autosave: true, autosaveInterval: 5000, autoload: true, persistenceMethod: 'fs'});
+const db = new loki(`${xConfig.uploads.dir}/${xConfig.uploads.dbName}`, { persistenceMethod : 'fs' });
 
 const getCollection = (name) => {
     "use strict";
@@ -29,11 +29,11 @@ const saveToDb = (collectionName, nameMapping) => {
         });
 };
 
-function interim(tag) {
+const save = (tag) => {
     return upload.array(tag, xConfig.uploads.simultaneousFileLimit);
-}
+};
 
-function getPath(collectionName, id) {
+const getPath = (collectionName, id) => {
     return getCollection(collectionName)
         .then((collection) => {
             let row = collection.find({ id : id });
@@ -43,10 +43,10 @@ function getPath(collectionName, id) {
             }
             return [];
         });
-}
+};
 
 module.exports = {
-    interim : interim,
+    save : save,
     saveToDb : saveToDb,
     getPath : getPath
 };

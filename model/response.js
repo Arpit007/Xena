@@ -2,11 +2,9 @@
  * Created by StarkX on 06-Jan-18.
  */
 
-module.exports = () => {
+module.exports = (code) => {
     return {
-        head : {
-            code : 0
-        },
+        head : { code : code },
         body : {}
     };
 };

@@ -4,7 +4,5 @@
 
 module.exports = {
     TEXT : "TEXT",
-    FILE : "FILE",
-    IMAGE : "IMAGE",
-    VIDEO : "VIDEO"
+    FILE : "FILE"
 };

@@ -16,14 +16,13 @@ else {
     config.debugMode = true;
 }
 
+config.localIP = require('../src/ip')(config.port);
 config.crypto.TokenKey = fs.readFileSync(path.join(__dirname, config.crypto.TokenKey));
 config.crypto.SessionKey = fs.readFileSync(path.join(__dirname, config.crypto.SessionKey));
 config.crypto.MinPasswordIterations = Math.max(1, config.crypto.MinPasswordIterations);
 config.crypto.MaxPasswordIterations = Math.max(1, Math.min(99, config.crypto.MaxPasswordIterations));
 
 require('./dbConnect')(config.dbConfig.url);
+
 global.xConfig = config;
-
-config.localIP = require('../src/ip')();
-
 module.exports = config;

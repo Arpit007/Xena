@@ -15,29 +15,21 @@ const ObjectID = require('mongoose').Types.ObjectId;
 //List of all past conversation
 router.post('/all', function (req, res) {
     "use strict";
-    return model.conversation.getConversationList(req.userID)
-        .then((conversations) => {
-            res.json(conversations);
-        })
-        .catch((e) => {
-            let reply = response();
-            reply.head.code = e;
-            res.json(reply);
-        });
+    return model.conversation.getPastConversations(req.userID)
+        .then((conversations) => res.json(conversations))
+        .catch((e) => res.json(response(e)));
 });
 
 //Get conversation by ID
 router.post('/id', function (req, res) {
     "use strict";
     let id = ObjectID(req.body.conversationID);
-    return model.conversation.getExpConversationByID(id)
+    return model.conversation.expandConversation(id)
         .then((conversation) => {
             res.json(conversation);
         })
         .catch((e) => {
-            let reply = response();
-            reply.head.code = e;
-            res.json(reply);
+            res.json(response(e));
         });
 });
 
@@ -46,13 +38,10 @@ router.post('/user', function (req, res) {
     "use strict";
     let otherUser = ObjectID(req.body.otherUserID);
     return model.conversation.getConversationByUsers(req.userID, otherUser)
-        .then((conversation) => {
-            res.json(conversation);
-        })
+        .then((conversation)=>model.conversation.expandConversation(conversation._id))
+        .then((conversation) => res.json(conversation))
         .catch((e) => {
-            let reply = response();
-            reply.head.code = e;
-            res.json(reply);
+            res.json(response(e));
         });
 });
 
@@ -60,13 +49,10 @@ router.post('/user', function (req, res) {
 router.post('/global', function (req, res) {
     "use strict";
     return model.conversation.getGlobalConversation()
-        .then((conversation) => {
-            res.json(conversation);
-        })
+        .then((conversation) => model.conversation.expandConversation(conversation._id))
+        .then((conversation) => res.json(conversation))
         .catch((e) => {
-            let reply = response();
-            reply.head.code = e;
-            res.json(reply);
+            res.json(response(e));
         });
 });
 
@@ -86,13 +72,11 @@ if (xConfig.debugMode) {
                 let Query;
                 try {
                     if (payload.isGlobal)
-                        Query = model.conversation.getGlobalConversationID();
-                    else Query = model.conversation.getConversationIDByUsers(userID, payload.otherUser);
+                        Query = model.conversation.getGlobalConversation();
+                    else Query = model.conversation.getConversationByUsers(userID, payload.otherUser);
                 }
                 catch (e) {
-                    let reply = response();
-                    reply.head.code = statusCode.InternalError;
-                    return res.json(reply);
+                    res.json(response(statusCode.InternalError));
                 }
                 return Query.then((conversation) => {
                     "use strict";
@@ -109,9 +93,7 @@ if (xConfig.debugMode) {
                 });
             }).catch((e) => {
                 "use strict";
-                let reply = response();
-                reply.head.code = e;
-                res.json(reply);
+                res.json(response(e));
             });
     });
 }

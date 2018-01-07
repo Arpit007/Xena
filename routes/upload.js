@@ -16,12 +16,11 @@ const model = require('../model/model');
 const upload = require('../src/upload');
 const mType = require('../model/messageType');
 
-const ObjectID = require('mongoose').Types.ObjectId;
 Promise.promisifyAll(fs);
 
 //To send message
 //{isGlobal, otherUser}
-router.post('/xFile', upload.interim('xFile'), auth.apiAuth, function (req, res) {
+router.post('/xFile', upload.save('xFile'), auth.apiAuth, function (req, res) {
     let payload = JSON.parse(req.body.payload);
     let userID = req.userID;
     let files = req.files;
@@ -31,13 +30,11 @@ router.post('/xFile', upload.interim('xFile'), auth.apiAuth, function (req, res)
         let Query;
         try {
             if (payload.isGlobal)
-                Query = model.conversation.getGlobalConversationID();
-            else Query = model.conversation.getConversationIDByUsers(ObjectID(socket.userID), ObjectID(payload.otherUser));
+                Query = model.conversation.getGlobalConversation();
+            else Query = model.conversation.getConversationByUsers(socket.userID, payload.otherUser);
         }
         catch (e) {
-            let reply = response();
-            reply.head.code = statusCode.InternalError;
-            return socket.emit('onError', reply);
+            return socket.emit('onError', res.json(response(statusCode.InternalError)));
         }
         return Query.then((conversation) => {
             "use strict";
@@ -66,9 +63,8 @@ router.post('/xFile', upload.interim('xFile'), auth.apiAuth, function (req, res)
                             .then(() => {
                                 return socket.broadcastMessage(conversation, messages)
                                     .then(() => {
-                                        let reply = response();
-                                        reply.head.code = statusCode.Ok;
-                                        reply.head.messages = messages;
+                                        let reply = response(statusCode.Ok);
+                                        reply.body.messages = messages;
                                         res.json(reply);
                                     });
                             });
@@ -93,9 +89,7 @@ router.post('/xFile', upload.interim('xFile'), auth.apiAuth, function (req, res)
     
     return process.catch((e) => {
         "use strict";
-        let reply = response();
-        reply.head.code = statusCode.InternalError;
-        socket.emit('onError', reply);
+        socket.emit('onError', response(statusCode.InternalError));
     });
 });
 

@@ -15,9 +15,7 @@ router.get('/:id', function (req, res) {
             "use strict";
             if (data.length === 2)
                 return res.download(data[ 0 ], data[ 1 ]);
-            let reply = response();
-            reply.head.code = statusCode.Forbidden;
-            res.json(reply);
+            res.json(response(statusCode.Forbidden));
         });
 });
 

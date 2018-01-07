@@ -8,6 +8,22 @@ const jwt = require('jsonwebtoken');
 
 const statusCode = require('./statusCode');
 
+const hashCount = () => {
+    "use strict";
+    return Math.floor(Math.random() * (xConfig.crypto.MaxPasswordIterations - xConfig.crypto.MinPasswordIterations))
+        + xConfig.crypto.MinPasswordIterations;
+};
+
+const comparePassword = (realPassword, password) => {
+    "use strict";
+    return new Promise((resolve, reject) => {
+        bCrypt.compare(realPassword, password, function (err, valid) {
+            if (err) reject(err);
+            else resolve(valid);
+        });
+    });
+};
+
 user.createUser = (userName, email, password) => {
     return new Promise((resolve, reject) => resolve())
         .then(() => {
@@ -17,43 +33,40 @@ user.createUser = (userName, email, password) => {
             if (password.length > xConfig.crypto.MaxPasswordLength)
                 throw statusCode.PasswordLong;
         }).then(() => {
-            return user.getUser(userName)
-                .then((User) => {
+            return user
+                .findOne({ $or : [ { userName : userName }, { email : email } ] })
+                .then((users) => {
                     "use strict";
-                    if (User)throw statusCode.UserAlreadyExists;
-                    return user.getUser(email)
-                        .then((User) => {
-                            if (User)throw statusCode.UserAlreadyExists;
-                            
-                            const Count = Math.floor(Math.random() * (xConfig.crypto.MaxPasswordIterations - xConfig.crypto.MinPasswordIterations))
-                                + xConfig.crypto.MinPasswordIterations;
-                            
-                            return bCrypt.genSalt(Count)
-                                .then((salt) => {
-                                    "use strict";
-                                    return bCrypt.hash(password, salt)
-                                        .then((hash) => {
-                                            return user
-                                                .create({
-                                                    userName : userName,
-                                                    email : email,
-                                                    password : hash
-                                                })
-                                                .catch((e) => {
-                                                    "use strict";
-                                                    console.log(e);
-                                                    throw statusCode.InternalError;
-                                                });
-                                        });
+                    if (users && users.length > 0)
+                        throw statusCode.UserAlreadyExists;
+                    return bCrypt.genSalt(hashCount())
+                        .then((salt) => bCrypt.hash(password, salt))
+                        .then((hash) => {
+                            return user
+                                .create({
+                                    userName : userName,
+                                    email : email,
+                                    password : hash
                                 });
+                        })
+                        .catch((e) => {
+                            "use strict";
+                            console.log(e);
+                            throw statusCode.InternalError;
                         });
                 });
         });
 };
 
-user.getUser = (identifier) => {
+user.getUser = (identifier, throwOnNull = false) => {
     return user
         .findOne({ $or : [ { userName : identifier }, { email : identifier } ] })
+        .then((user) => {
+            "use strict";
+            if (!user && throwOnNull)
+                throw statusCode.UserDoesNotExists;
+            return user;
+        })
         .catch((e) => {
             "use strict";
             console.log(e);
@@ -71,37 +84,21 @@ user.getUserByID = (id) => {
         });
 };
 
-let comparePassword = (realPassword, password) => {
-    "use strict";
-    return new Promise((resolve, reject) => {
-        bCrypt.compare(realPassword, password, function (err, valid) {
-            if (err)
-                reject(err);
-            else resolve(valid);
-        });
-    });
-};
-
 user.authorise = (identifier, password) => {
     "use strict";
-    return user.getUser(identifier)
-        .then((user) => {
-            if (!user)
-                throw statusCode.UserDoesNotExists;
-            return comparePassword(password, user.password)
-                .then((validity) => {
-                    if (!validity)
-                        throw statusCode.Unauthorized;
-                    return user;
-                });
+    return user.getUser(identifier, true)
+        .then((user) => comparePassword(password, user.password))
+        .then((validity) => {
+            if (!validity)
+                throw statusCode.Unauthorized;
+            return user;
         });
 };
 
 user.generateResetToken = (identifier) => {
     "use strict";
-    return user.getUser(identifier)
+    return user.getUser(identifier, true)
         .then((User) => {
-            if (!User)throw statusCode.UserDoesNotExists;
             User.resetToken = jwt.sign({
                 userID : User._id.toString(),
                 key : rand.generate(xConfig.crypto.ResetTokenLength)
@@ -122,23 +119,17 @@ user.resetTokenValidity = (User, Token) => {
 
 user.changePassword = (User, newPassword) => {
     "use strict";
-    const Count = Math.floor(Math.random() * (xConfig.crypto.MaxPasswordIterations - xConfig.crypto.MinPasswordIterations))
-        + xConfig.crypto.MinPasswordIterations;
-    
-    return bCrypt.genSalt(Count)
-        .then((salt) => {
-            "use strict";
-            bCrypt.hash(newPassword, salt)
-                .then((hash) => {
-                    User.password = hash;
-                    User.reset.Token = null;
-                    User.reset.Expiry = null;
-                    return User.save()
-                        .then(() => User)
-                        .catch((e) => {
-                            console.log(e);
-                            throw statusCode.InternalError;
-                        });
+    return bCrypt.genSalt(hashCount())
+        .then((salt) => bCrypt.hash(newPassword, salt))
+        .then((hash) => {
+            User.password = hash;
+            User.reset.Token = null;
+            User.reset.Expiry = null;
+            return User.save()
+                .then(() => User)
+                .catch((e) => {
+                    console.log(e);
+                    throw statusCode.InternalError;
                 });
         });
 };

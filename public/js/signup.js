@@ -13,7 +13,7 @@ $(document).ready(function() {
 		var mail = $('#email').val();
 		var repass = $('#re-password').val();
 		if(pass != repass) {
-			$('#error-msg').text('Passwords do not match');	
+			$('#baseResponse-msg').text('Passwords do not match');
 		} else if(user != "" && pass != "" && mail != "" && repass != "") {
 			$('#enabler').addClass('disabled');
 			$('.progress').show();
@@ -28,15 +28,15 @@ $(document).ready(function() {
 				if(data.head.code === 700) {
 					$('.progress').hide();
 					$('#enabler').removeClass('disabled');
-					$('#error-msg').text('Password too short < 8');		
+					$('#baseResponse-msg').text('Password too short < 8');
 				} else if(data.head.code === 701) {
 					$('.progress').hide();
 					$('#enabler').removeClass('disabled');
-					$('#error-msg').text('Password too long > 32');
+					$('#baseResponse-msg').text('Password too long > 32');
 				} else if(data.head.code === 405) {
 					$('.progress').hide();
 					$('#enabler').removeClass('disabled');
-					$('#error-msg').text('Username or email already exists');
+					$('#baseResponse-msg').text('Username or email already exists');
 				} else if(data.head.code === 200) {
 					localStorage.username = data.body.userName;
 					localStorage.token = data.body.token;
@@ -45,11 +45,11 @@ $(document).ready(function() {
 				} else {
 					$('.progress').hide();
 					$('#enabler').removeClass('disabled');
-					$('#error-msg').text('Unknown error occured');
+					$('#baseResponse-msg').text('Unknown baseResponse occured');
 				}
  			});
 		} else {
-			$('#error-msg').text('Cannot be left blank');
+			$('#baseResponse-msg').text('Cannot be left blank');
 		}
 	});
 
