@@ -1,6 +1,6 @@
 {
   "appName": "Xena: Debug",
-  "port": 3000,
+  "port": 3001,
   "dbConfig": {
     "url": "mongodb://localhost:27017/Xena"
   },

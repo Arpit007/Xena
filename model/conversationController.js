@@ -58,7 +58,10 @@ conversation.getGlobalConversation = () => {
 
 conversation.getConversationByUsers = (user1, user2) => {
     "use strict";
-    return conversation.findOne({ participants : [ user1, user2 ], global : false });
+    return conversation.findOne({ participants : [ user1, user2 ], global : false })
+        .catch((e) => {
+            throw statusCode.InternalError;
+        })
 };
 
 conversation.createConversation = (user1, user2) => {

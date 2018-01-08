@@ -34,7 +34,7 @@ router.post('/xFile', upload.save('xFile'), auth.apiAuth, function (req, res) {
             else Query = model.conversation.getConversationByUsers(socket.userID, payload.otherUser);
         }
         catch (e) {
-            return socket.emit('onError', res.json(response(statusCode.InternalError)));
+            throw statusCode.InternalError;
         }
         return Query.then((conversation) => {
             "use strict";
@@ -43,7 +43,7 @@ router.post('/xFile', upload.save('xFile'), auth.apiAuth, function (req, res) {
                 let subQueries = [];
                 
                 files.forEach((file) => {
-                    return subQueries.push(model.message.createMessage(conversation._id, mType.FILE, "", userID)
+                    return subQueries.push(model.message.createMessage(conversation._id, mType.FILE, file.originalname, userID)
                         .then((message) => {
                             let name = file.originalname;
                             let base = path.dirname(file.path);
@@ -52,24 +52,19 @@ router.post('/xFile', upload.save('xFile'), auth.apiAuth, function (req, res) {
                                     if (err) reject(err);
                                     else resolve(res);
                                 });
-                            }).then(() => {
-                                messages.push({ message : message, fileName : name });
-                            });
+                            }).then(() => messages.push({ message : message, fileName : name }));
                         }));
                 });
                 return Promise.all(subQueries)
+                    .then(() => upload.saveToDb('xFile', messages))
+                    .then(() => socket.broadcastMessage(conversation, messages))
                     .then(() => {
-                        return upload.saveToDb('xFile', messages)
-                            .then(() => {
-                                return socket.broadcastMessage(conversation, messages)
-                                    .then(() => {
-                                        let reply = response(statusCode.Ok);
-                                        reply.body.messages = messages;
-                                        res.json(reply);
-                                    });
-                            });
+                        let reply = response(statusCode.Ok);
+                        reply.body.messages = messages;
+                        res.json(reply);
                     });
             };
+            
             if (!conversation)
                 return model.conversation.createConversation(socket.userID, payload.otherUser)
                     .then((conversation) => process(conversation));
@@ -77,20 +72,17 @@ router.post('/xFile', upload.save('xFile'), auth.apiAuth, function (req, res) {
         });
     };
     
-    let process;
+    let validate;
     if (!payload.isGlobal)
-        process = model.user.find({ _id : [ userID, payload.otherUser ] }, { _id : 1 })
+        validate = model.user.getUsers([ userID, payload.otherUser ])
             .then((users) => {
-                if (!users || users.length !== 2)
+                if (users.length !== 2)
                     throw statusCode.BadRequest;
                 return task();
             });
-    else process = task();
+    else validate = task();
     
-    return process.catch((e) => {
-        "use strict";
-        socket.emit('onError', response(statusCode.InternalError));
-    });
+    return validate.catch((e) => res.json(response(e)));
 });
 
 module.exports = router;

@@ -74,9 +74,15 @@ user.getUser = (identifier, throwOnNull = false) => {
         });
 };
 
-user.getUserByID = (id) => {
+user.getUserByID = (id, throwOnNull = false) => {
     return user
         .findById(id)
+        .then((user) => {
+            "use strict";
+            if (!user && throwOnNull)
+                throw statusCode.UserDoesNotExists;
+            return user;
+        })
         .catch((e) => {
             "use strict";
             console.log(e);
@@ -84,15 +90,26 @@ user.getUserByID = (id) => {
         });
 };
 
+user.getUsers = (userIDs) => {
+    return user.find({ _id : userIDs }, { _id : 1 })
+        .catch((e) => {
+            "use strict";
+            console.log(e);
+            return [];
+        });
+};
+
 user.authorise = (identifier, password) => {
     "use strict";
     return user.getUser(identifier, true)
-        .then((user) => comparePassword(password, user.password))
-        .then((validity) => {
-            if (!validity)
-                throw statusCode.Unauthorized;
-            return user;
-        });
+        .then((user) => {
+            return comparePassword(password, user.password)
+                .then((validity) => {
+                    if (!validity)
+                        throw statusCode.Unauthorized;
+                    return user;
+                });
+        })
 };
 
 user.generateResetToken = (identifier) => {

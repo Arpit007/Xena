@@ -25,7 +25,8 @@ function sendMessage(socket, payload) {
                 else Query = model.conversation.getConversationByUsers(socket.userID, payload.otherUser);
             }
             catch (e) {
-                return socket.emit('onError', response(statusCode.InternalError));
+                console.log(e);
+                throw statusCode.InternalError;
             }
             return Query.then((conversation) => {
                 "use strict";
@@ -41,6 +42,10 @@ function sendMessage(socket, payload) {
                                     });
                                 }
                             });
+                        })
+                        .catch((e) => {
+                            console.log(e);
+                            throw statusCode.InternalError;
                         });
                 };
                 if (!conversation)
@@ -52,46 +57,51 @@ function sendMessage(socket, payload) {
         
         let process;
         if (!payload.isGlobal)
-            process = model.user.find({ _id : [ userID, payload.otherUser ] }, { _id : 1 })
+            process = model.user.getUsers([ userID, payload.otherUser ])
                 .then((users) => {
-                    if (!users || users.length !== 2)
+                    if (users.length !== 2)
                         throw statusCode.BadRequest;
                     return task();
                 });
         else process = task();
         
-        return process.catch((e) => {
-            "use strict";
-            socket.emit('onError', response(statusCode.InternalError));
-        });
+        return process.catch((e) => socket.emit('onError', response(e)));
     }
     catch (e) {
         return socket.emit('onError', response(statusCode.Unauthorized));
     }
 }
 
-function getLiveList() {
+function getUserList() {
     let UserList = { admin : [], other : [] };
-    for (let key in Connections) {
-        if (Connections[ key ].length) {
-            if (Connections[ key ][ 0 ].isAdmin)
-                UserList.admin.push({ id : key, userName : Connections[ key ][ 0 ].userName });
-            else UserList.other.push({ id : key, userName : Connections[ key ][ 0 ].userName });
-        }
-    }
-    return UserList;
+    return model.user.find({}, { _id : 1, userName : 1, isAdmin : 1 })
+        .then((users) => {
+            "use strict";
+            users.forEach((user) => {
+                if (user.isAdmin)
+                    UserList.admin.push(user);
+                else UserList.other.push(user);
+            });
+            return UserList;
+        })
+        .catch((e) => {
+            "use strict";
+            console.log(e);
+            return [];
+        });
 }
 
-function NotifyAll(userID) {
-    let UserList = getLiveList();
-    for (let key in Connections) {
-        if (userID && key === userID)
-            continue;
-        Connections[ key ].forEach((sock) => {
+function NotifyAll() {
+    return getUserList()
+        .then((UserList) => {
             "use strict";
-            sock.emit('live', UserList);
+            for (let key in Connections) {
+                Connections[ key ].forEach((sock) => {
+                    "use strict";
+                    sock.emit('list', UserList);
+                });
+            }
         });
-    }
 }
 
 function Leave(socket) {
@@ -99,27 +109,16 @@ function Leave(socket) {
         let index = Connections[ socket.userID ].indexOf(socket);
         if (index !== -1) {
             Connections[ socket.userID ].splice(index, 1);
-            let Notify = false;
-            if (Connections[ socket.userID ].length === 0) {
+            if (Connections[ socket.userID ].length === 0)
                 delete Connections[ socket.userID ];
-                Notify = true;
-            }
-            if (Notify) {
-                NotifyAll();
-            }
         }
     }
-}
-
-function getActiveUsers(socket) {
-    "use strict";
-    socket.emit('live', getLiveList());
 }
 
 function AttachEvents(socket) {
     "use strict";
     socket.on('send', (payload) => sendMessage(socket, payload));
-    socket.on('liveList', () => getActiveUsers(socket));
+    socket.on('allList', () => socket.emit('list', getUserList()));
 }
 
 const connect = (app) => {
@@ -134,15 +133,13 @@ const connect = (app) => {
                 
                 let process = () => {
                     socket.userID = userID;
-                    if (Connections[ userID ].length === 0)
-                        NotifyAll(userID);
                     Connections[ userID ].push(socket);
                     AttachEvents(socket);
                     socket.emit('connectionSuccess');
                 };
                 
                 if (!(userID in Connections)) {
-                    return model.user.getUserByID(ObjectID(userID))
+                    return model.user.getUserByID(ObjectID(userID), true)
                         .then((user) => {
                             Connections[ userID ] = [];
                             socket.userName = user.userName;
@@ -155,7 +152,8 @@ const connect = (app) => {
                         socket.userName = Connections[ userID ][ 0 ].userName;
                         socket.isAdmin = Connections[ userID ][ 0 ].isAdmin;
                     })
-                    .then(() => process());
+                    .then(() => process())
+                    .catch((e) => socket.emit('onError', response(e)));
                 
             }
             catch (e) {
@@ -180,8 +178,7 @@ const broadcastMessage = (conversation, messages) => {
                     let arr = Connections[ participant.toString() ];
                     if (arr) {
                         arr.forEach((sock) => {
-                            if (sock !== socket)
-                                socket.emit('onReceive', message);
+                            sock.emit('onReceive', message);
                         });
                     }
                 });
@@ -191,5 +188,6 @@ const broadcastMessage = (conversation, messages) => {
 
 module.exports = {
     connect : connect,
-    broadcastMessage : broadcastMessage
+    broadcastMessage : broadcastMessage,
+    NotifyNewSignUp : NotifyAll
 };
